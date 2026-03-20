@@ -95,25 +95,27 @@ jobs:
       # Trigger endpoint update (Terraform detects new model.tar.gz)
       - name: Update SageMaker endpoint
         if: success()
-        run: |
-          # 1. Generate a unique name for the new config
-          NEW_CONFIG_NAME="churn-prod-config-$(date +%Y%m%d-%H%M%S)"
-          echo "Creating new temporary config: $NEW_CONFIG_NAME"
-
-          # 2. Create a new config based on the existing one (but with a new name)
-          # This forces SageMaker to recognize a 'change'
-          aws sagemaker create-endpoint-config \
-            --endpoint-config-name "$NEW_CONFIG_NAME" \
-            --production-variants "[$(aws sagemaker describe-endpoint-config --endpoint-config-name customer-churn-prod-codemon-99-config --query 'ProductionVariants[0]' --output json)]" \
-            --region ${{ env.AWS_REGION }}
-
-          # 3. Update the endpoint to use this new config
-          aws sagemaker update-endpoint \
-            --endpoint-name customer-churn-prod-codemon-99-endpoint \
-            --endpoint-config-name "$NEW_CONFIG_NAME" \
-            --region ${{ env.AWS_REGION }}
-          
-          echo "Blue/Green deployment started with new config."
+          run: |
+            NEW_CONFIG_NAME="churn-prod-config-$(date +%Y%m%d-%H%M%S)"
+            echo "Creating new config: $NEW_CONFIG_NAME"
+            
+            CURRENT_VARIANT=$(aws sagemaker describe-endpoint-config \
+              --endpoint-config-name customer-churn-prod-codemon-99-config \
+              --query 'ProductionVariants[0]' \
+              --output json \
+              --region us-east-1)
+            
+            aws sagemaker create-endpoint-config \
+              --endpoint-config-name "$NEW_CONFIG_NAME" \
+              --production-variants "[$CURRENT_VARIANT]" \
+              --region us-east-1
+            
+            aws sagemaker update-endpoint \
+              --endpoint-name customer-churn-prod-codemon-99-endpoint \
+              --endpoint-config-name "$NEW_CONFIG_NAME" \
+              --region us-east-1
+            
+            echo "Blue/Green deployment started with $NEW_CONFIG_NAME"
           # Note: This uses blue/green deployment defined in Terraform.
           # The old endpoint stays live until the new one passes health checks.
 
