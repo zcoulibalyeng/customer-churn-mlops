@@ -274,6 +274,12 @@ resource "aws_iam_role_policy" "terraform_lock_access" {
   })
 }
 
+# This gives the GitHub Action Role the power to manage ALL resources in the plan
+resource "aws_iam_role_policy_attachment" "github_actions_admin" {
+  role       = aws_iam_role.sagemaker.name
+  policy_arn = "arn:aws:iam::aws:policy/AdministratorAccess"
+}
+
 # ─── Outputs ─────────────────────────────────────────────────
 output "sagemaker_role_arn" {
   value = aws_iam_role.sagemaker.arn
