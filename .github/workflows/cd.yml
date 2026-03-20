@@ -387,8 +387,14 @@ jobs:
 
       - name: Wait for endpoint
         run: |
+          # Get the exact endpoint name from Terraform outputs
+          PROD_ENDPOINT_NAME=$(cd terraform/environments/prod && terraform output -raw sagemaker_endpoint)
+          echo "Waiting for SageMaker endpoint: $PROD_ENDPOINT_NAME"
+          
           aws sagemaker wait endpoint-in-service \
-            --endpoint-name customer-churn-prod-codemon-99-endpoint
+            --endpoint-name "$PROD_ENDPOINT_NAME" \
+            --region ${{ env.AWS_REGION }}
+          echo "Endpoint is InService!"
 
       # Production smoke test
       - name: Production smoke test
