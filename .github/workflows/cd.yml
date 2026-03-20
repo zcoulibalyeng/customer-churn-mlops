@@ -336,7 +336,7 @@ jobs:
         run: |
           aws s3 cp \
             s3://customer-churn-dev-models-codemon-99/latest/model.tar.gz \
-            s3://customer-churn-dev-models-codemon-99/latest/model.tar.gz
+            s3://customer-churn-prod-models-codemon-99/latest/model.tar.gz
 
       # Copy Lambda packages to prod
       - name: Promote Lambda packages
