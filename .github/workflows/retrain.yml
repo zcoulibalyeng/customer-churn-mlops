@@ -98,6 +98,7 @@ jobs:
           # Force SageMaker to pick up the new model by updating the endpoint
           aws sagemaker update-endpoint \
             --endpoint-name customer-churn-prod-codemon-99-endpoint \
+            --endpoint-config-name customer-churn-prod-codemon-99-config
             --region ${{ env.AWS_REGION }} || true
           # Note: This uses blue/green deployment defined in Terraform.
           # The old endpoint stays live until the new one passes health checks.
