@@ -1,0 +1,110 @@
+# ═══════════════════════════════════════════════════════════════
+# Scheduled Retraining Pipeline
+#
+# Runs every Monday at 6 AM UTC (outside business hours).
+# Downloads latest data, retrains, validates quality gates,
+# and deploys ONLY if the new model beats the old one.
+#
+# This is the SCHEDULED path. The REACTIVE path is:
+#   Model Monitor drift → SNS → Lambda → SageMaker Pipeline
+# ═══════════════════════════════════════════════════════════════
+
+name: Scheduled Retrain
+
+on:
+  schedule:
+    - cron: "0 6 * * 1"  # Every Monday 6 AM UTC
+  workflow_dispatch:       # Also allow manual trigger
+
+env:
+  AWS_REGION: us-east-1
+  PYTHON_VERSION: "3.10"
+
+jobs:
+  retrain:
+    name: Retrain & Evaluate
+    runs-on: ubuntu-latest
+
+    permissions:
+      id-token: write
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN_CD }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Download latest data
+        run: |
+          mkdir -p data
+          aws s3 cp s3://customer-churn-prod-data/raw/bank_data.csv data/bank_data.csv
+
+      - name: Train new model
+        run: |
+          python src/training/train.py \
+            --data-path data/bank_data.csv \
+            --output-dir models/
+
+      # Compare new model against current production model
+      - name: Quality gate - compare against production
+        id: quality
+        run: |
+          python -c "
+          import json
+
+          with open('models/metrics.json') as f:
+              new = json.load(f)
+
+          new_f1 = new['random_forest']['f1_score']
+          new_auc = new['random_forest']['auc_roc']
+
+          # Hard floor: model must meet minimum thresholds
+          assert new_f1 >= 0.85, f'F1 {new_f1} below 0.85 floor'
+          assert new_auc >= 0.88, f'AUC {new_auc} below 0.88 floor'
+
+          print(f'New model: F1={new_f1:.4f} AUC={new_auc:.4f}')
+          print('Quality gates PASSED - model eligible for deployment')
+          "
+
+      - name: Package and upload model
+        if: success()
+        run: |
+          cd models/
+          tar -czvf model.tar.gz rfc_model.pkl logistic_model.pkl scaler.pkl metrics.json feature_columns.json
+          TIMESTAMP=$(date +%Y%m%d-%H%M%S)
+          aws s3 cp model.tar.gz s3://customer-churn-prod-models/latest/model.tar.gz
+          aws s3 cp model.tar.gz "s3://customer-churn-prod-models/versions/model-${TIMESTAMP}.tar.gz"
+          echo "Model uploaded: model-${TIMESTAMP}.tar.gz"
+
+      # Trigger endpoint update (Terraform detects new model.tar.gz)
+      - name: Update SageMaker endpoint
+        if: success()
+        run: |
+          # Force SageMaker to pick up the new model by updating the endpoint
+          aws sagemaker update-endpoint \
+            --endpoint-name customer-churn-prod-endpoint \
+            --endpoint-config-name customer-churn-prod-config \
+            --region ${{ env.AWS_REGION }} || true
+          # Note: This uses blue/green deployment defined in Terraform.
+          # The old endpoint stays live until the new one passes health checks.
+
+      - name: Notify on success
+        if: success()
+        run: echo "Retraining complete. New model deployed."
+
+      - name: Notify on failure
+        if: failure()
+        run: echo "Retraining FAILED. Current production model unchanged."

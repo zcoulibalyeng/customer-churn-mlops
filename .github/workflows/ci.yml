@@ -1,0 +1,230 @@
+# ═══════════════════════════════════════════════════════════════
+# CI Pipeline - Runs on every Pull Request
+#
+# WHAT IT DOES (in order):
+#   1. Lint & format check (black, pylint, bandit)
+#   2. Unit tests with coverage
+#   3. Build Docker containers (verify they compile)
+#   4. Terraform plan (show what WOULD change, don't apply)
+#   5. Post plan output as PR comment (reviewer sees infra changes)
+#
+# WHAT IT DOES NOT DO:
+#   - Deploy anything (that's cd.yml)
+#   - Push containers to ECR (that's cd.yml)
+#   - Touch any AWS resource (except terraform plan, which is read-only)
+# ═══════════════════════════════════════════════════════════════
+
+name: CI - Test & Validate
+
+on:
+  pull_request:
+    branches: [main, develop]
+  push:
+    branches: [develop]
+
+env:
+  PYTHON_VERSION: "3.10"
+  TERRAFORM_VERSION: "1.7.0"
+
+jobs:
+  # ─────────────────────────────────────────────────────────────
+  # JOB 1: Code Quality
+  # WHY SEPARATE JOB: Fails fast. No point building containers
+  # if the code doesn't pass lint.
+  # ─────────────────────────────────────────────────────────────
+  code-quality:
+    name: Lint & Format
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: "pip"
+
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+          pip install -r requirements-dev.txt
+
+      - name: Check formatting (black)
+        run: black --check src/ src/tests/
+
+      - name: Lint (pylint)
+        run: pylint src/ --fail-under=7.0 --disable=C0114,C0115,C0116
+
+      - name: Security scan (bandit)
+        run: bandit -r src/ -ll --skip B101
+        # B101 = assert statements (fine in non-prod code)
+
+  # ─────────────────────────────────────────────────────────────
+  # JOB 2: Tests
+  # Runs unit tests and integration tests (mocked AWS calls).
+  # ─────────────────────────────────────────────────────────────
+  tests:
+    name: Unit & Integration Tests
+    runs-on: ubuntu-latest
+    needs: code-quality  # Don't waste CI minutes if lint fails
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: "pip"
+
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+          pip install -r requirements-dev.txt
+
+      - name: Run unit tests with coverage
+        run: |
+          pytest src/tests/ -v \
+            --tb=short \
+            --cov=src \
+            --cov-report=xml:coverage.xml \
+            --cov-report=term-missing \
+            --junitxml=test-results.xml
+
+      - name: Upload coverage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: coverage.xml
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: test-results.xml
+
+      # Post coverage as PR comment so reviewers see it
+      - name: Coverage comment on PR
+        if: github.event_name == 'pull_request'
+        uses: orgoro/coverage@v3.2
+        with:
+          coverageFile: coverage.xml
+          token: ${{ secrets.GITHUB_TOKEN }}
+          thresholdAll: 0.70
+
+  # ─────────────────────────────────────────────────────────────
+  # JOB 3: Build Containers
+  # Verifies Dockerfiles compile. Does NOT push to ECR.
+  # ─────────────────────────────────────────────────────────────
+  build-containers:
+    name: Build Docker Images
+    runs-on: ubuntu-latest
+    needs: tests
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      # Build training container (just build, no push)
+      - name: Build training container
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: containers/training/Dockerfile
+          push: false
+          tags: customer-churn-training:test
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      # Build inference container
+      - name: Build inference container
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: containers/inference/Dockerfile
+          push: false
+          tags: customer-churn-inference:test
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  # ─────────────────────────────────────────────────────────────
+  # JOB 4: Terraform Plan
+  # Shows what infrastructure changes the PR would cause.
+  # Uses read-only credentials. Cannot modify anything.
+  # ─────────────────────────────────────────────────────────────
+  terraform-plan:
+    name: Terraform Plan (Dev)
+    runs-on: ubuntu-latest
+    needs: tests
+    if: github.event_name == 'pull_request'
+
+    permissions:
+      pull-requests: write  # Needed to post plan as PR comment
+      contents: read
+      id-token: write       # Needed for OIDC auth to AWS
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN_CI }}
+          aws-region: us-east-1
+          # WHY OIDC (not access keys):
+          # - No long-lived secrets to rotate
+          # - Role scoped to read-only for CI
+          # - GitHub verifies identity via OIDC token
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TERRAFORM_VERSION }}
+
+      - name: Terraform Init
+        working-directory: terraform/environments/dev
+        run: terraform init -input=false
+
+      - name: Terraform Validate
+        working-directory: terraform/environments/dev
+        run: terraform validate
+
+      - name: Terraform Plan
+        id: plan
+        working-directory: terraform/environments/dev
+        run: terraform plan -var-file=terraform.tfvars -no-color -out=tfplan
+        continue-on-error: true
+
+      # Post the plan output as a PR comment
+      - name: Post plan to PR
+        uses: actions/github-script@v7
+        if: github.event_name == 'pull_request'
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const output = `#### Terraform Plan 📋
+            \`\`\`
+            ${{ steps.plan.outputs.stdout }}
+            \`\`\`
+            *Plan ran on: \`terraform/environments/dev\`*
+            *Pushed by: @${{ github.actor }}*`;
+
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: output.substring(0, 65536)  // GitHub comment limit
+            });
+
+      - name: Terraform Plan Status
+        if: steps.plan.outcome == 'failure'
+        run: exit 1

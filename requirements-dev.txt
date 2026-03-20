@@ -1,0 +1,6 @@
+pytest>=7.4.0
+pytest-cov>=4.1.0
+black>=24.0.0
+pylint>=3.0.0
+bandit>=1.7.0
+moto>=5.0.0

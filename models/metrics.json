@@ -1,0 +1,21 @@
+{
+  "random_forest": {
+    "accuracy": 0.9598552155314248,
+    "f1_score": 0.8673913043478261,
+    "auc_roc": 0.989886453008258
+  },
+  "logistic_regression": {
+    "accuracy": 0.9002961500493584,
+    "f1_score": 0.6447831184056272,
+    "auc_roc": 0.9212544239087692
+  },
+  "best_params": {
+    "criterion": "gini",
+    "max_depth": 100,
+    "max_features": "sqrt",
+    "n_estimators": 500
+  },
+  "training_timestamp": "2026-03-20T04:24:43.462579",
+  "data_samples": 10127,
+  "feature_count": 19
+}

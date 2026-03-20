@@ -1,0 +1,37 @@
+# Terraform
+*.tfstate
+*.tfstate.*
+.terraform/
+.terraform.lock.hcl
+tfplan
+crash.log
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+.venv/
+venv/
+
+# ML artifacts (these live in S3, not git)
+models/*.pkl
+models/*.tar.gz
+data/*.csv
+
+# IDE
+.vscode/
+.idea/
+*.swp
+.DS_Store
+
+# Test/coverage
+htmlcov/
+.coverage
+coverage.xml
+test-results.xml
+.pytest_cache/
+
+# Docker
+*.log
