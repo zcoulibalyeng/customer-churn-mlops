@@ -81,10 +81,13 @@ jobs:
           tags: |
             ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/customer-churn-dev-training:v${{ steps.meta.outputs.sha_short }}
             ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/customer-churn-dev-training:latest
+            # ADD THESE TWO FOR TRAINING:
+            ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/customer-churn-prod-codemon-99-training:v${{ steps.meta.outputs.sha_short }}
+            ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/customer-churn-prod-codemon-99-training:latest
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      # Build + push inference container
+      # Build + push inference image
       - name: Build & push inference image
         uses: docker/build-push-action@v5
         with:
@@ -94,6 +97,8 @@ jobs:
           tags: |
             ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/customer-churn-dev-inference:v${{ steps.meta.outputs.sha_short }}
             ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/customer-churn-dev-inference:latest
+            ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/customer-churn-prod-codemon-99-inference:v${{ steps.meta.outputs.sha_short }}
+            ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/customer-churn-prod-codemon-99-inference:latest
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
