@@ -350,20 +350,20 @@ jobs:
 #          aws s3 cp s3://customer-churn-dev-models/lambda/retrain_trigger.zip \
 #            s3://customer-churn-prod-data-codemon-99/lambda/retrain_trigger.zip
 
-      # Copy model artifact (Safe for first-time run)
+      # 1. Promote model (Copy from DEV bucket to PROD bucket)
       - name: Promote model to prod
         run: |
           aws s3 cp \
             s3://customer-churn-dev-models/latest/model.tar.gz \
-            s3://customer-churn-prod-models-codemon-99/latest/model.tar.gz || echo "Prod bucket doesn't exist yet; Terraform will create it."
+            s3://customer-churn-prod-codemon-99-models/latest/model.tar.gz || echo "First run: Terraform will create this bucket next"
 
-      # Copy Lambda packages (Safe for first-time run)
+      # 2. Promote Lambda packages
       - name: Promote Lambda packages
         run: |
           aws s3 cp s3://customer-churn-dev-models/lambda/predict.zip \
-            s3://customer-churn-prod-models-codemon-99/lambda/predict.zip || echo "Bucket not ready"
+            s3://customer-churn-prod-codemon-99-models/lambda/predict.zip || echo "Bucket not ready"
           aws s3 cp s3://customer-churn-dev-models/lambda/retrain_trigger.zip \
-            s3://customer-churn-prod-models-codemon-99/lambda/retrain_trigger.zip || echo "Bucket not ready"
+            s3://customer-churn-prod-codemon-99-models/lambda/retrain_trigger.zip || echo "Bucket not ready"
 
       - name: Terraform Init
         working-directory: terraform/environments/prod
