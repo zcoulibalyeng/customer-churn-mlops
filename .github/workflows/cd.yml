@@ -357,7 +357,7 @@ jobs:
             s3://customer-churn-dev-models/latest/model.tar.gz \
             s3://customer-churn-prod-codemon-99-models/latest/model.tar.gz || echo "First run: Terraform will create this bucket next"
 
-      # 2. Promote Lambda packages
+      # 2. Promote Lambda packages --
       - name: Promote Lambda packages
         run: |
           aws s3 cp s3://customer-churn-dev-models/lambda/predict.zip \
