@@ -835,7 +835,7 @@ jobs:
           # curl -X POST "${{ secrets.SLACK_WEBHOOK }}" \
           #   -H 'Content-Type: application/json' \
           #   -d '{"text":"❌ Customer Churn deployment FAILED. Check: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"}'
-name "$PROD_ENDPOINT_NAME" \
+          name "$PROD_ENDPOINT_NAME" \
             --region ${{ env.AWS_REGION }}
           echo "Endpoint is InService!"
 
