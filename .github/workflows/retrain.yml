@@ -95,11 +95,14 @@ jobs:
       - name: Update SageMaker endpoint
         if: success()
         run: |
-          # Force SageMaker to pick up the new model by updating the endpoint
+          echo "Forcing SageMaker to re-pull the new model.tar.gz from S3..."
+          # We use --retain-all-variant-properties to tell SageMaker 
+          # to keep the current config but force a re-deployment.
           aws sagemaker update-endpoint \
             --endpoint-name customer-churn-prod-codemon-99-endpoint \
-            --endpoint-config-name customer-churn-prod-codemon-99-config
-            --region ${{ env.AWS_REGION }} || true
+            --endpoint-config-name customer-churn-prod-codemon-99-config \
+            --retain-all-variant-properties \
+            --region ${{ env.AWS_REGION }}
           # Note: This uses blue/green deployment defined in Terraform.
           # The old endpoint stays live until the new one passes health checks.
 
