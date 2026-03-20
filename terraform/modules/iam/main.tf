@@ -228,6 +228,52 @@ resource "aws_iam_role_policy_attachment" "sagemaker_ecr" {
   policy_arn = "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryPowerUser"
 }
 
+# This allows Terraform in GitHub Actions to manage its own state file
+resource "aws_iam_role_policy" "terraform_state_access" {
+  name = "${var.name_prefix}-terraform-state-policy"
+  role = aws_iam_role.sagemaker.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        # Permission to list the bucket
+        Action = ["s3:ListBucket"]
+        Effect = "Allow"
+        Resource = ["arn:aws:s3:::customer-churn-terraform-state-codemon-99"]
+      },
+      {
+        # Permission to read/write the state files inside
+        Action = ["s3:GetObject", "s3:PutObject", "s3:DeleteObject"]
+        Effect = "Allow"
+        Resource = ["arn:aws:s3:::customer-churn-terraform-state-codemon-99/*"]
+      }
+    ]
+  })
+}
+
+# This allows Terraform in GitHub to "Lock" the state so nobody else interferes
+resource "aws_iam_role_policy" "terraform_lock_access" {
+  name = "${var.name_prefix}-terraform-lock-policy"
+  role = aws_iam_role.sagemaker.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Action = [
+          "dynamodb:DescribeTable",
+          "dynamodb:GetItem",
+          "dynamodb:PutItem",
+          "dynamodb:DeleteItem"
+        ]
+        Effect   = "Allow"
+        Resource = "arn:aws:dynamodb:us-east-1:011839104711:table/terraform-lock"
+      }
+    ]
+  })
+}
+
 # ─── Outputs ─────────────────────────────────────────────────
 output "sagemaker_role_arn" {
   value = aws_iam_role.sagemaker.arn
