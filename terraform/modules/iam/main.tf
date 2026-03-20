@@ -28,8 +28,21 @@ resource "aws_iam_role" "sagemaker" {
       Principal = {
         Service = "sagemaker.amazonaws.com"
       }
-    }]
-  })
+    },
+    {
+      Action = "sts:AssumeRoleWithWebIdentity"
+      Effect = "Allow"
+      Principal = {
+        Federated = aws_iam_openid_connect_provider.github.arn
+      }
+      Condition = {
+        StringLike = {
+          "token.actions.githubusercontent.com:sub" = "repo:zcoulibalyeng/customer-churn-mlops:*"
+        }
+      }
+    }
+  ]
+ })
 }
 
 # SageMaker needs: S3 (read data, write models), ECR (pull containers),
@@ -199,6 +212,14 @@ resource "aws_iam_role_policy_attachment" "api_gateway_logging" {
 
 resource "aws_api_gateway_account" "main" {
   cloudwatch_role_arn = aws_iam_role.api_gateway_logging.arn
+}
+
+
+# GitHub OIDC Provider for GitHub Actions to authenticate and push images to ECR.
+resource "aws_iam_openid_connect_provider" "github" {
+  url             = "https://token.actions.githubusercontent.com"
+  client_id_list  = ["sts.amazonaws.com"]
+  thumbprint_list = ["1b5113038660a9f600f1352e85a6663f70557b7a"]
 }
 
 # ─── Outputs ─────────────────────────────────────────────────
