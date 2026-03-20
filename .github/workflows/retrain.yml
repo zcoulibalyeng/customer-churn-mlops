@@ -117,7 +117,7 @@ jobs:
             
             echo "Blue/Green deployment started with $NEW_CONFIG_NAME"
           # Note: This uses blue/green deployment defined in Terraform.
-          # The old endpoint stays live until the new one passes health checks.
+          # The old endpoint stays live until the new one passes health checks.!
 
       - name: Notify on success
         if: success()
