@@ -20,6 +20,7 @@ env:
   AWS_REGION: us-east-1
   PYTHON_VERSION: "3.10"
 
+
 jobs:
   retrain:
     name: Retrain & Evaluate
@@ -50,7 +51,7 @@ jobs:
       - name: Download latest data
         run: |
           mkdir -p data
-          aws s3 cp s3://customer-churn-dev-data-codemon-99/raw/bank_data.csv data/bank_data.csv
+          aws s3 cp s3://customer-churn-prod-codemon-99-data/raw/bank_data.csv data/bank_data.csv
 
       - name: Train new model
         run: |
@@ -95,7 +96,6 @@ jobs:
       - name: Update SageMaker endpoint
         if: success()
         run: |
-          run: |
           # 1. Generate a unique name for the new config
           NEW_CONFIG_NAME="churn-prod-config-$(date +%Y%m%d-%H%M%S)"
           echo "Creating new temporary config: $NEW_CONFIG_NAME"
