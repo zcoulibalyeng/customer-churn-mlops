@@ -81,7 +81,6 @@ jobs:
           tags: |
             ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/customer-churn-dev-training:v${{ steps.meta.outputs.sha_short }}
             ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/customer-churn-dev-training:latest
-            # ADD THESE TWO FOR TRAINING:
             ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/customer-churn-prod-codemon-99-training:v${{ steps.meta.outputs.sha_short }}
             ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/customer-churn-prod-codemon-99-training:latest
           cache-from: type=gha
