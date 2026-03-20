@@ -8,7 +8,7 @@
 # ═══════════════════════════════════════════════════════════════
 
 project_name       = "customer-churn"
-environment        = "prod"
+environment        = "prod-codemon-99"
 aws_region         = "us-east-1"
 model_instance_type  = "ml.m5.xlarge"
 model_instance_count = 2
