@@ -335,16 +335,16 @@ jobs:
       - name: Promote model to prod
         run: |
           aws s3 cp \
-            s3://customer-churn-dev-models/latest/model.tar.gz \
-            s3://customer-churn-prod-models/latest/model.tar.gz
+            s3://customer-churn-dev-models-codemon-99/latest/model.tar.gz \
+            s3://customer-churn-dev-models-codemon-99/latest/model.tar.gz
 
       # Copy Lambda packages to prod
       - name: Promote Lambda packages
         run: |
-          aws s3 cp s3://customer-churn-dev-models/lambda/predict.zip \
-            s3://customer-churn-prod-models/lambda/predict.zip
-          aws s3 cp s3://customer-churn-dev-models/lambda/retrain_trigger.zip \
-            s3://customer-churn-prod-models/lambda/retrain_trigger.zip
+          aws s3 cp s3://customer-churn-dev-models-codemon-99/lambda/predict.zip \
+            s3://customer-churn-prod-models-codemon-99/lambda/predict.zip
+          aws s3 cp s3://customer-churn-dev-models-codemon-99/lambda/retrain_trigger.zip \
+            s3://customer-churn-prod-models-codemon-99/lambda/retrain_trigger.zip
 
       - name: Terraform Init
         working-directory: terraform/environments/prod
