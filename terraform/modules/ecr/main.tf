@@ -24,7 +24,8 @@ resource "aws_ecr_repository" "training" {
     scan_on_push = true  # Catches CVEs on every push
   }
 
-  image_tag_mutability = "IMMUTABLE"
+  # image_tag_mutability = "IMMUTABLE"
+  image_tag_mutability = "MUTABLE"
   # IMMUTABLE means once you push :v1.2.3, it can never be overwritten.
   # This guarantees reproducibility: the image behind a model version
   # is always the same image.
@@ -42,7 +43,8 @@ resource "aws_ecr_repository" "inference" {
     scan_on_push = true
   }
 
-  image_tag_mutability = "IMMUTABLE"
+  # image_tag_mutability = "IMMUTABLE"
+  image_tag_mutability = "MUTABLE"
 
   encryption_configuration {
     encryption_type = "AES256"

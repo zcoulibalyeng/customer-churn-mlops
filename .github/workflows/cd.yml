@@ -183,7 +183,7 @@ jobs:
       - name: Download training data
         run: |
           mkdir -p data
-          aws s3 cp s3://customer-churn-dev-data/raw/bank_data.csv data/bank_data.csv
+          aws s3 cp s3://customer-churn-dev-data-codemon-99/raw/bank_data.csv data/bank_data.csv
 
       # Train the model
       - name: Train model

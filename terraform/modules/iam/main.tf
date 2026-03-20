@@ -222,6 +222,12 @@ resource "aws_iam_openid_connect_provider" "github" {
   thumbprint_list = ["1b5113038660a9f600f1352e85a6663f70557b7a"]
 }
 
+# This allows the role to push images to ECR
+resource "aws_iam_role_policy_attachment" "sagemaker_ecr" {
+  role       = aws_iam_role.sagemaker.name
+  policy_arn = "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryPowerUser"
+}
+
 # ─── Outputs ─────────────────────────────────────────────────
 output "sagemaker_role_arn" {
   value = aws_iam_role.sagemaker.arn
