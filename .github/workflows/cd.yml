@@ -284,7 +284,7 @@ jobs:
       - name: Smoke test
         run: |
           ENDPOINT_URL=$(cd terraform/environments/dev && terraform output -raw api_endpoint)
-          echo "Testing endpoint: $ENDPOINT_URL"
+          echo "Testing Prod endpoint: $ENDPOINT_URL"
 
           # Health check
           HEALTH=$(curl -s "${ENDPOINT_URL%predict}health")
