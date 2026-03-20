@@ -388,12 +388,13 @@ jobs:
       - name: Wait for endpoint
         run: |
           aws sagemaker wait endpoint-in-service \
-            --endpoint-name customer-churn-prod-endpoint
+            --endpoint-name customer-churn-prod-codemon-99-endpoint
 
       # Production smoke test
       - name: Production smoke test
         run: |
           ENDPOINT_URL=$(cd terraform/environments/prod && terraform output -raw api_endpoint)
+          echo "Testing Prod Endpoint: $ENDPOINT_URL"
 
           RESULT=$(curl -s -X POST "$ENDPOINT_URL" \
             -H "Content-Type: application/json" \
