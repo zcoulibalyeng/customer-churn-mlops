@@ -78,6 +78,7 @@ jobs:
           context: .
           file: containers/training/Dockerfile
           push: true
+          platforms: linux/amd64
           tags: |
             ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/customer-churn-dev-training:v${{ steps.meta.outputs.sha_short }}
             ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/customer-churn-dev-training:latest
@@ -93,6 +94,7 @@ jobs:
           context: .
           file: containers/inference/Dockerfile
           push: true
+          platforms: linux/amd64
           tags: |
             ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/customer-churn-dev-inference:v${{ steps.meta.outputs.sha_short }}
             ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/customer-churn-dev-inference:latest
