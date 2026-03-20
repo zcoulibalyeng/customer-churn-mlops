@@ -32,8 +32,9 @@ resource "aws_iam_role" "sagemaker" {
     {
       Action = "sts:AssumeRoleWithWebIdentity"
       Effect = "Allow"
+      # We use a data-driven ARN string so we don't depend on a local resource
       Principal = {
-        Federated = aws_iam_openid_connect_provider.github.arn
+        Federated = "arn:aws:iam::011839104711:oidc-provider/token.actions.githubusercontent.com"
       }
       Condition = {
         StringLike = {
@@ -212,14 +213,6 @@ resource "aws_iam_role_policy_attachment" "api_gateway_logging" {
 
 resource "aws_api_gateway_account" "main" {
   cloudwatch_role_arn = aws_iam_role.api_gateway_logging.arn
-}
-
-
-# GitHub OIDC Provider for GitHub Actions to authenticate and push images to ECR.
-resource "aws_iam_openid_connect_provider" "github" {
-  url             = "https://token.actions.githubusercontent.com"
-  client_id_list  = ["sts.amazonaws.com"]
-  thumbprint_list = ["1b5113038660a9f600f1352e85a6663f70557b7a"]
 }
 
 # This allows the role to push images to ECR
